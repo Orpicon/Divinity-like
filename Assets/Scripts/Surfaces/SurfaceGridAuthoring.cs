@@ -4,8 +4,6 @@ using UnityEngine;
 
 namespace Divinity.Surfaces
 {
-    // Authoring-компонент: обычный MonoBehaviour, который живёт только в редакторе внутри SubScene.
-    // При бейкинге Baker превращает его в ECS-компоненты, а сам GameObject в рантайме не существует.
     public class SurfaceGridAuthoring : MonoBehaviour
     {
         [Tooltip("Размер области с поверхностями в метрах (X, Z). Угол области — позиция этого объекта")]
@@ -36,7 +34,6 @@ namespace Divinity.Surfaces
 
         public int2 CellCount => math.max(1, (int2)math.round(new float2(WorldSize.x, WorldSize.y) * CellsPerMeter));
 
-        // Рисуем в сцене рамку сетки, чтобы видеть, какую часть пола она покрывает.
         void OnDrawGizmosSelected()
         {
             var size = new Vector3(CellCount.x * CellSize, 0f, CellCount.y * CellSize);
@@ -48,15 +45,11 @@ namespace Divinity.Surfaces
         {
             public override void Bake(SurfaceGridAuthoring authoring)
             {
-                // TransformUsageFlags.None — сетке самой не нужен трансформ, это просто контейнер данных.
                 var entity = GetEntity(TransformUsageFlags.None);
 
-                // Позицию читаем из Transform, поэтому регистрируем зависимость, чтобы при её изменении бейкинг перезапускался.
                 DependsOn(authoring.transform);
 
                 float cellSize = authoring.CellSize;
-                // Огонь за тик перескакивает на одну клетку. Чтобы скорость в метрах/сек не зависела от размера клетки,
-                // тик тем короче, чем мельче клетки.
                 float tickInterval = cellSize / math.max(0.1f, authoring.SpreadSpeed);
 
                 AddComponent(entity, new SurfaceGridConfig

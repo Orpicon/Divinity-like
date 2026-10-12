@@ -1,9 +1,3 @@
-// Пол с поверхностями (вода, масло, огонь...) для HDRP, написан на HLSL.
-//
-// Это копия стандартного HDRP/Lit (пакет com.unity.render-pipelines.high-definition 17.3, Runtime/Material/Lit/Lit.shader)
-// без raytracing-сабшейдера. Единственное отличие — вместо LitData.hlsl подключён SurfaceFloorLitData.hlsl,
-// который описывает поверхность пола. Вся логика узора — в SurfaceFloor.hlsl.
-// При обновлении HDRP копию стоит пересоздать из нового Lit.shader тем же способом.
 Shader "Divinity/SurfaceFloor"
 {
     Properties

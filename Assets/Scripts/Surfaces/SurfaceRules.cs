@@ -2,13 +2,11 @@ using Unity.Mathematics;
 
 namespace Divinity.Surfaces
 {
-    // Чистые функции без состояния: их можно вызывать и из Burst-джобов, и из обычного кода.
     public static class SurfaceRules
     {
         public static bool IsTemporary(SurfaceType type) =>
             type == SurfaceType.Fire || type == SurfaceType.ElectrifiedWater || type == SurfaceType.Steam;
 
-        // Во что превращается временная поверхность, когда её время истекло.
         public static SurfaceType AfterExpire(SurfaceType type) =>
             type == SurfaceType.ElectrifiedWater ? SurfaceType.Water : SurfaceType.None;
 
@@ -21,11 +19,9 @@ namespace Divinity.Surfaces
                 SurfaceType.Steam => config.SteamDuration,
                 _ => 0f,
             };
-            return new Surface { Type = type, Lifetime = lifetime, PreviousType = type, ChangedAt = -1e6f }; // "давно" — без анимации перехода
+            return new Surface { Type = type, Lifetime = lifetime, PreviousType = type, ChangedAt = -1e6f };
         }
 
-        // Переход клетки в новое состояние с запоминанием, из какого типа и когда она перешла (для плавной смены вида).
-        // Если тип не поменялся (например, огонь просто "подпитали"), текущий визуальный переход не сбрасывается.
         public static Surface ChangeTo(in Surface current, Surface next, float now)
         {
             if (next.Type != current.Type)
@@ -41,20 +37,16 @@ namespace Divinity.Surfaces
             return next;
         }
 
-        // Что происходит, когда игрок "кастует" поверхность на клетку.
-        // Возвращает false, если кисть на этой клетке ничего не меняет.
         public static bool TryApplyBrush(SurfaceType brush, in Surface current, in SurfaceGridConfig config, float now, out Surface result)
         {
             result = current;
             switch (brush)
             {
                 case SurfaceType.ElectrifiedWater:
-                    // Электричество действует только на воду.
                     if (current.Type != SurfaceType.Water)
                         return false;
                     break;
                 case SurfaceType.Fire:
-                    // Огонь на воде — пар.
                     if (current.Type == SurfaceType.Water || current.Type == SurfaceType.ElectrifiedWater)
                         brush = SurfaceType.Steam;
                     break;
@@ -67,8 +59,6 @@ namespace Divinity.Surfaces
             return true;
         }
 
-        // Внешний вид типа поверхности. Из этих данных SurfaceFloorRenderSystem собирает палитру для шейдера пола.
-        // Цвета в линейном пространстве. Позже здесь появятся ссылки на текстуры вместо цветов.
         public static SurfaceLook Look(SurfaceType type)
         {
             switch (type)
@@ -88,7 +78,7 @@ namespace Divinity.Surfaces
                     return new SurfaceLook(new float3(0.3f, 0.6f, 1f), smoothness: 0.9f,
                         flickerColor: new float3(0.95f, 0.97f, 1f), flickerSpeed: 40f, emission: new float3(0.4f, 0.7f, 1f) * 1.5f);
                 default:
-                    return new SurfaceLook(new float3(0.22f, 0.19f, 0.15f), smoothness: 0.15f); // земля
+                    return new SurfaceLook(new float3(0.22f, 0.19f, 0.15f), smoothness: 0.15f);
             }
         }
     }
@@ -97,9 +87,9 @@ namespace Divinity.Surfaces
     {
         public float3 Color;
         public float Smoothness;
-        public float3 FlickerColor; // второй цвет, между которым "мерцает" поверхность
-        public float FlickerSpeed;  // 0 — не мерцает
-        public float3 Emission;     // свечение (огонь, искры)
+        public float3 FlickerColor;
+        public float FlickerSpeed;
+        public float3 Emission;
 
         public SurfaceLook(float3 color, float smoothness, float3 flickerColor = default, float flickerSpeed = 0f, float3 emission = default)
         {

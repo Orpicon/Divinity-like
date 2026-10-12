@@ -1,21 +1,12 @@
 #ifndef DIVINITY_SURFACE_FLOOR_LIT_DATA_INCLUDED
 #define DIVINITY_SURFACE_FLOOR_LIT_DATA_INCLUDED
 
-// Подменяет LitData.hlsl в копии HDRP Lit.shader (см. SurfaceFloor.shader).
-//
-// Идея: HDRP Lit делает всю тяжёлую работу — освещение, тени, GI, декали, отражения, отладку.
-// От материала ему нужна только функция GetSurfaceAndBuiltinData: "какая поверхность в этой точке".
-// Стандартную реализацию подключаем под другим именем (из LitData.hlsl нам нужны вспомогательные функции),
-// а свою пишем по её образцу: цвет/гладкость пола подставляем ДО GetBuiltinData, потому что там HDRP
-// уже умножает запечённое освещение на альбедо.
-
 #define GetSurfaceAndBuiltinData GetSurfaceAndBuiltinData_HDRPLit
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/LitData.hlsl"
 #undef GetSurfaceAndBuiltinData
 
 #include "Assets/Surfaces/Shaders/SurfaceFloor.hlsl"
 
-// Узор нужен только проходам, где пол реально освещается; тени и глубине цвет не важен.
 #if (SHADERPASS == SHADERPASS_GBUFFER) || (SHADERPASS == SHADERPASS_FORWARD) || (SHADERPASS == SHADERPASS_LIGHT_TRANSPORT)
     #define SURFACE_FLOOR_EVALUATE
 #endif
@@ -33,7 +24,6 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
     ZERO_INITIALIZE(LayerTexCoord, layerTexCoord);
     GetLayerTexCoord(input, layerTexCoord);
 
-    // Базовые данные Lit (нормали, AO, маски из материала), дальше подменяем то, что задаёт пол.
     float3 normalTS;
     float3 bentNormalTS;
     float alpha = GetSurfaceData(input, layerTexCoord, surfaceData, normalTS, bentNormalTS);
@@ -43,7 +33,6 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
 
     float3 floorEmission = 0;
 #ifdef SURFACE_FLOOR_EVALUATE
-    // HDRP хранит позиции относительно камеры (camera-relative rendering), сетке нужна абсолютная.
     float3 positionAWS = GetAbsolutePositionWS(input.positionRWS);
     float3 floorColor;
     float floorSmoothness;
@@ -83,10 +72,8 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
 
     surfaceData.tangentWS = Orthonormalize(surfaceData.tangentWS, surfaceData.normalWS);
 
-    // surfaceData должен быть полностью заполнен до GetBuiltinData (там считается GI с учётом альбедо).
     GetBuiltinData(input, V, posInput, surfaceData, alpha, bentNormalWS, 0.0, layerTexCoord.base, builtinData);
 
-    // Делим на экспозицию камеры, чтобы свечение было заметно при любой яркости сцены.
     builtinData.emissiveColor += floorEmission * GetInverseCurrentExposureMultiplier();
 }
 

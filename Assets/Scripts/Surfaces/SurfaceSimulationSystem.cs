@@ -5,11 +5,6 @@ using Unity.Mathematics;
 
 namespace Divinity.Surfaces
 {
-    // Клеточная симуляция поверхностей. Раз в TickInterval:
-    //   1) SnapshotJob копирует состояние всех клеток в плоский NativeArray (индекс = координата);
-    //   2) StepJob для каждой клетки смотрит на соседей в снимке и пишет новое состояние.
-    // Снимок нужен, чтобы результат не зависел от порядка обработки клеток (двойная буферизация).
-    // Оба джоба параллельные (ScheduleParallel) и скомпилированы Burst'ом.
     [BurstCompile]
     [UpdateInGroup(typeof(SimulationSystemGroup))]
     public partial struct SurfaceSimulationSystem : ISystem
@@ -18,7 +13,7 @@ namespace Divinity.Surfaces
         public void OnCreate(ref SystemState state)
         {
             state.RequireForUpdate<SurfaceGridConfig>();
-            state.RequireForUpdate<SurfaceCellRef>(); // т.е. сетка уже заспавнена
+            state.RequireForUpdate<SurfaceCellRef>();
         }
 
         [BurstCompile]
@@ -29,8 +24,6 @@ namespace Divinity.Surfaces
 
             timer.TimeUntilTick -= SystemAPI.Time.DeltaTime;
 
-            // При мелкой сетке тик может быть короче кадра — тогда делаем несколько шагов за кадр,
-            // но не больше MaxStepsPerFrame, чтобы при просадке FPS не уйти в "спираль смерти".
             const int MaxStepsPerFrame = 4;
             int steps = 0;
             while (timer.TimeUntilTick <= 0f && steps < MaxStepsPerFrame)
@@ -39,7 +32,7 @@ namespace Divinity.Surfaces
                 steps++;
             }
             if (timer.TimeUntilTick <= 0f)
-                timer.TimeUntilTick = config.TickInterval; // отстали слишком сильно — пропускаем лишние тики
+                timer.TimeUntilTick = config.TickInterval;
             if (steps == 0)
                 return;
 
@@ -47,17 +40,14 @@ namespace Divinity.Surfaces
             float now = (float)SystemAPI.Time.ElapsedTime;
             var handle = state.Dependency;
 
-            // Каждый шаг — пара джобов: снимок -> шаг. Все шаги выстроены в одну цепочку зависимостей.
             for (int i = 0; i < steps; i++)
             {
                 handle = new SnapshotJob
                 {
                     Snapshot = snapshot,
-                    // Электричество, появившееся на прошлом тике, ещё "свежее" и может перейти на соседнюю воду.
                     FreshElectricThreshold = config.ElectricDuration - config.TickInterval * 0.5f,
                 }.ScheduleParallel(handle);
 
-                // Шаг зависит от снимка: читает то, что тот заполнил.
                 handle = new StepJob
                 {
                     Snapshot = snapshot,
@@ -66,7 +56,6 @@ namespace Divinity.Surfaces
                 }.ScheduleParallel(handle);
             }
 
-            // Освобождаем снимок после завершения последнего джоба — без ожидания на главном потоке.
             state.Dependency = snapshot.Dispose(handle);
         }
 
@@ -79,8 +68,6 @@ namespace Divinity.Surfaces
         [BurstCompile]
         partial struct SnapshotJob : IJobEntity
         {
-            // Параллельный джоб по умолчанию может писать только в "свой" индекс.
-            // Мы пишем по cell.Index, которые уникальны, поэтому ограничение снимаем явно.
             [NativeDisableParallelForRestriction] public NativeArray<CellSnapshot> Snapshot;
             public float FreshElectricThreshold;
 
@@ -99,7 +86,7 @@ namespace Divinity.Surfaces
         {
             [ReadOnly] public NativeArray<CellSnapshot> Snapshot;
             public SurfaceGridConfig Config;
-            public float Now; // время мира — клетка запоминает, когда сменила тип, для плавного перехода в шейдере
+            public float Now;
 
             void Execute(in SurfaceCell cell, ref Surface surface)
             {

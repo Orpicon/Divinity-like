@@ -4,10 +4,6 @@ using UnityEngine;
 
 namespace Divinity.Surfaces.Editor
 {
-    // Создаёт объекты демо в открытой сцене:
-    //   SurfaceGrid     — authoring сетки (данные), его нужно переместить в SubScene;
-    //   SurfaceFloor    — Plane с материалом на HLSL-шейдере Divinity/SurfaceFloor, остаётся в основной сцене;
-    //   SurfaceDebugHud — подсказка по управлению, остаётся в основной сцене.
     public static class SurfaceDemoSetup
     {
         const string Folder = "Assets/Surfaces";
@@ -24,20 +20,13 @@ namespace Divinity.Surfaces.Editor
 
             CreateFloor(authoring);
 
-            if (Object.FindAnyObjectByType<SurfaceDebugHud>() == null)
-            {
-                var hud = new GameObject("SurfaceDebugHud", typeof(SurfaceDebugHud));
-                Undo.RegisterCreatedObjectUndo(hud, "Create Surfaces Demo");
-            }
+            SurfaceHudBuilder.AddToScene();
 
             Selection.activeGameObject = grid;
             Debug.Log("Surfaces demo: выделен объект SurfaceGrid. ПКМ по нему в Hierarchy → New Sub Scene → From Selection. " +
-                      "SurfaceFloor и SurfaceDebugHud оставьте в основной сцене.");
+                      "SurfaceFloor и SurfaceHud оставьте в основной сцене.");
         }
 
-        // Для сцены, где SurfaceGrid уже есть: создаёт только пол.
-        // Если SubScene открыта для редактирования — размер пола возьмётся из SurfaceGridAuthoring,
-        // иначе — из значений по умолчанию (сетка 64×64 с центром в начале координат).
         [MenuItem("Tools/Divinity/Create Surface Floor")]
         public static void CreateFloorOnly()
         {
@@ -60,7 +49,6 @@ namespace Divinity.Surfaces.Editor
                 origin = new Vector3(-32f, 0f, -32f);
             }
 
-            // Стандартный Plane — 10×10 единиц с центром в середине, поэтому масштаб = размер / 10.
             var floor = GameObject.CreatePrimitive(PrimitiveType.Plane);
             floor.name = "SurfaceFloor";
             floor.transform.position = origin + new Vector3(size.x * 0.5f, 0f, size.y * 0.5f);
