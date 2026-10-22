@@ -1,0 +1,27 @@
+{
+    "name": "Divinity.Surfaces.Tests",
+    "rootNamespace": "Divinity.Surfaces.Tests",
+    "references": [
+        "Divinity.Surfaces",
+        "Unity.Entities",
+        "Unity.Mathematics",
+        "Unity.Collections",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
